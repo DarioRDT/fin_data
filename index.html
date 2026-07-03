@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>נתונים פיננסיים</title>
+    <title>נתונים פיננסיים דינמיים</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
@@ -41,7 +41,7 @@
         <div id="cards-container" class="space-y-6">
             <div class="bg-white rounded-xl p-6 shadow-md border border-gray-200 text-center py-12">
                 <i class="fa-solid fa-circle-notch animate-spin text-3xl text-blue-600 mb-3 block"></i>
-                <p class="text-gray-600 font-medium">טוען נתונים...</p>
+                <p class="text-gray-600 font-medium">טוען נתונים פיננסיים מהגיליון...</p>
             </div>
         </div>
     </div>
@@ -100,7 +100,6 @@
                         let changeClass = "text-gray-500 text-right";
                         let changeText = item.change ? item.change.trim() : "";
 
-                        // בדיקה וצביעה של עמודת השינוי בהתאם לערך הגולמי מהשיטס
                         if (changeText && changeText !== "0" && changeText !== "0.00" && changeText !== "0.00%") {
                             if (changeText.startsWith('-')) {
                                 changeClass = "text-red-500 font-semibold text-right";
@@ -113,12 +112,11 @@
                             changeText = "";
                         }
 
-                        // לקיחת הערך הגולמי בדיוק כפי שהוא מגיע מהגוגל שיטס (מונע שבירת נקודות עשרוניות)
                         let valueText = item.value ? item.value.trim() : "";
 
                         cardHTML += `
-                            <div class="grid grid-cols-3 items-center px-5 py-3.5 hover:bg-gray-50 transition gap-4 text-right">
-                                <span class="font-medium text-gray-700 text-right">${item.name}</span>
+                            <div class="grid grid-cols-4 items-center px-5 py-3.5 hover:bg-gray-50 transition gap-4 text-right">
+                                <span class="col-span-2 font-medium text-gray-700 text-right">${item.name}</span>
                                 
                                 <span class="font-bold text-gray-900 text-right">${valueText}</span>
                                 
@@ -143,7 +141,7 @@
                     <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-5 shadow-sm text-center">
                         <i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i>
                         <p class="font-bold">שגיאה בטעינת הנתונים</p>
-                        <p class="text-sm mt-1"> </p>
+                        <p class="text-sm mt-1">ודא שה-Web App הוגדר לגישת 'Everyone' ושכתובת ה-URL תקינה.</p>
                     </div>
                 `;
             } finally {
