@@ -3,43 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>נתונים פיננסיים</title>
+    <title>נתונים פיננסיים דינמיים</title>
     <script src="https://cdn.tailwindcss.com"></script>
-<style>
-    /* הוספתי padding-left של 20px כדי להזיז את כל התוכן ימינה */
-    .iframe-container {
-        position: relative;
-        width: 100%;
-        height: 520px;
-        overflow: hidden;
-        border-radius: 12px;
-        padding-left: 20px; 
-    }
-    .iframe-container iframe {
-        position: absolute;
-        top: -30px;
-        left: 0;
-        width: 100%;
-        height: 600px;
-    }
-</style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
-<body class="bg-gray-100 p-4 font-sans">
+<body class="bg-gray-100 font-sans min-h-screen pb-12">
 
-    <div class="max-w-md mx-auto">
-        <header class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">נתונים פיננסיים</h1>
-            <button onclick="location.reload()" class="bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-            </button>
+    <div class="sticky top-0 z-50 shadow-md">
+        <header class="bg-[#2c3e50] px-4 py-3 flex justify-between items-center box-sizing border-box">
+            <h1 class="text-xl md:text-2xl font-bold text-white tracking-wide select-none">נתונים פיננסיים</h1>
+            
+            <a href="https://rdt-consulting.co.il/" target="_blank" class="flex items-center shrink-0">
+                <img src="https://rdt-consulting.co.il/wp-content/uploads/2026/05/Banner-transparent-all-white-he-768x276.png" alt="RDT Consulting" class="h-10 md:h-11 w-auto block" />
+            </a>
         </header>
+    </div>
 
-        <div class="iframe-container shadow-xl border border-gray-200">
-            <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTUwhU07H052ig3Z2AAU-yL_XAYKl7l1ptC4zRJdVnMlr00z2MNpohgJymijqDN55XAB1HjRgtE1KyT/pubhtml?gid=0&amp;single=true&amp;widget=false&amp;headers=false"></iframe>
+    <div class="max-w-xl mx-auto px-4 mt-6">
+        
+        <div class="flex justify-between items-center mb-4">
+            <div id="update-time-container" class="text-xs md:text-sm text-gray-600 font-medium">
+                עודכן לאחרונה: <span id="last-update-time">--/-- --:--</span>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <span id="loading-status" class="text-xs md:text-sm text-gray-500 font-medium hidden">
+                    <i class="fa-solid fa-spinner animate-spin ml-1"></i> מעדכן...
+                </span>
+                <button onclick="loadFinancialData()" class="bg-[#2c3e50] text-white p-2.5 rounded-full shadow-md hover:opacity-90 transition active:scale-95" title="רענן נתונים">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="cards-container" class="space-y-6">
+            <div class="bg-white rounded-xl p-6 shadow-md border border-gray-200 text-center py-12">
+                <i class="fa-solid fa-circle-notch animate-spin text-3xl text-blue-600 mb-3 block"></i>
+                <p class="text-gray-600 font-medium">טוען נתונים פיננסיים מהגיליון...</p>
+            </div>
         </div>
     </div>
 
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbynBqnjuyRxBYg5iCf3y5h9vsG_cP-PnOfbuG20dUDZrqZUTTIpL2P2u8nBOmctjIcgDQ/exec';
+
+        function padZero(num) {
+            return num.toString().padStart(2, '0');
+        }
+
+        function updateTimestamp() {
+            const now = new Date();
+            const day = padZero(now.getDate());
+            const month = padZero(now.getMonth() + 1);
+            const hours = padZero(now.getHours());
+            const minutes = padZero(now.getMinutes());
+            
+            document.getElementById('last-update-time').innerText = `${day}/${month} ${hours}:${minutes}`;
+        }
+
+        async function loadFinancialData() {
+            const container = document.getElementById('cards-container');
+            const statusIndicator = document.getElementById('loading-status');
+            
+            statusIndicator.classList.remove('hidden');
+
+            try {
+                const response = await fetch(SCRIPT_URL);
+                if (!response.ok) throw new Error('התקבל מענה לא תקין מהשרת');
+                
+                const data = await response.json();
+                
+                const groupedData = {};
+                data.forEach(item => {
+                    if (!groupedData[item.category]) {
+                        groupedData[item.category] = [];
+                    }
+                    groupedData[item.category].push(item);
+                });
+
+                container.innerHTML = '';
+
+                for (const category in groupedData) {
+                    if (category === "") continue; 
+                    
+                    let cardHTML = `
+                        <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                            <div class="bg-[#2c3e50] px-5 py-3 border-b border-gray-100">
+                                <h2 class="text-lg font-bold text-white">${category}</h2>
+                            </div>
+                            <div class="divide-y divide-gray-100">
+                    `;
+
+                    groupedData[category].forEach(item => {
+                        let changeClass = "text-gray-500 text-right";
+                        let changeText = item.change ? item.change.trim() : "";
+
+                        // בדיקה וצביעה של עמודת השינוי בהתאם לערך הגולמי מהשיטס
+                        if (changeText && changeText !== "0" && changeText !== "0.00" && changeText !== "0.00%") {
+                            if (changeText.startsWith('-')) {
+                                changeClass = "text-red-500 font-semibold text-right";
+                                changeText = '-' + changeText.replace('-', '').trim();
+                            } else {
+                                changeClass = "text-green-600 font-semibold text-right";
+                                if (!changeText.startsWith('+')) changeText = '+' + changeText.trim();
+                            }
+                        } else {
+                            changeText = "";
+                        }
+
+                        // לקיחת הערך הגולמי בדיוק כפי שהוא מגיע מהגוגל שיטס (מונע שבירת נקודות עשרוניות)
+                        let valueText = item.value ? item.value.trim() : "";
+
+                        cardHTML += `
+                            <div class="grid grid-cols-3 items-center px-5 py-3.5 hover:bg-gray-50 transition gap-4 text-right">
+                                <span class="font-medium text-gray-700 text-right">${item.name}</span>
+                                
+                                <span class="font-bold text-gray-900 text-right">${valueText}</span>
+                                
+                                <span class="${changeClass}" dir="ltr">${changeText}</span>
+                            </div>
+                        `;
+                    });
+
+                    cardHTML += `
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.innerHTML += cardHTML;
+                }
+
+                updateTimestamp();
+
+            } catch (error) {
+                console.error("Error fetching financial data:", error);
+                container.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-5 shadow-sm text-center">
+                        <i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i>
+                        <p class="font-bold">שגיאה בטעינת הנתונים</p>
+                        <p class="text-sm mt-1">ודא שה-Web App הוגדר לגישת 'Everyone' ושכתובת ה-URL תקינה.</p>
+                    </div>
+                `;
+            } finally {
+                statusIndicator.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", loadFinancialData);
+    </script>
 </body>
 </html>
