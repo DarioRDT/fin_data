@@ -63,6 +63,51 @@
             document.getElementById('last-update-time').innerText = `${day}/${month} ${hours}:${minutes}`;
         }
 
+        function parseCleanValue(val) {
+            if (val === undefined || val === null || val === "") return 0;
+            // ניקוי תווים שאינם מספרים או נקודה עשרונית, תוך שמירה על סימן המינוס
+            let clean = val.toString().replace(/[^\d.-]/g, '');
+            return parseFloat(clean) || 0;
+        }
+
+        function formatValue(val, name) {
+            if (val === undefined || val === null || val === "") return "";
+            let num = parseCleanValue(val);
+            let strVal = val.toString().trim();
+
+            // דרישה: דולר ויורו תמיד עם 2 ספרות עשרוניות
+            if (name.includes("דולר") || name.includes("יורו")) {
+                return num.toFixed(2);
+            }
+            
+            // דרישה: אינפלציה ומדדים פיננסיים עם אחוזים ו-2 ספרות עשרוניות
+            if (name.includes("אינפלציה") || name.includes("מדד המחירים לצרכן")) {
+                let displayNum = (num > 0 && num < 1 && strVal.includes('.')) ? num * 100 : num;
+                return displayNum.toFixed(2) + "%";
+            }
+
+            if (name.includes("ריבית")) {
+                let displayNum = (num > 0 && num < 1 && strVal.includes('.')) ? num * 100 : num;
+                return displayNum.toFixed(2) + "%";
+            }
+            
+            if (strVal.includes('%')) return strVal;
+
+            // מדדי מניות גדולים וביטקוין - מספר שלם עם פסיקים
+            return Math.round(num).toLocaleString('he-IL');
+        }
+
+        function formatChange(val) {
+            if (val === undefined || val === null || val === "") return "";
+            let num = parseCleanValue(val);
+            if (num === 0) return "";
+
+            if (Math.abs(num) < 1 && val.toString().includes('.')) {
+                return (num * 100).toFixed(2) + "%";
+            }
+            return num.toFixed(2) + "%";
+        }
+
         async function loadFinancialData() {
             const container = document.getElementById('cards-container');
             const statusIndicator = document.getElementById('loading-status');
@@ -97,30 +142,45 @@
                     `;
 
                     groupedData[category].forEach(item => {
+                        let cleanName = item.name ? item.name.trim() : "";
+                        
+                        let valueText = formatValue(item.value, cleanName);
+                        let rawChange = formatChange(item.change);
+                        
                         let changeClass = "text-gray-500 text-right";
-                        let changeText = item.change ? item.change.trim() : "";
+                        let changeText = "";
 
-                        if (changeText && changeText !== "0" && changeText !== "0.00" && changeText !== "0.00%") {
-                            if (changeText.startsWith('-')) {
+                        if (rawChange && rawChange !== "0" && rawChange !== "0.00" && rawChange !== "0.00%") {
+                            if (rawChange.startsWith('-')) {
                                 changeClass = "text-red-500 font-semibold text-right";
-                                changeText = '-' + changeText.replace('-', '').trim();
+                                changeText = '-' + rawChange.replace('-', '').trim();
                             } else {
                                 changeClass = "text-green-600 font-semibold text-right";
-                                if (!changeText.startsWith('+')) changeText = '+' + changeText.trim();
+                                changeText = '+' + rawChange.replace('+', '').trim();
                             }
-                        } else {
-                            changeText = "";
                         }
 
-                        let valueText = item.value ? item.value.trim() : "";
+                        let nameContentHTML = `<span class="font-medium text-gray-700">${cleanName}</span>`;
+                        if (item.link && item.link.trim() !== "") {
+                            nameContentHTML = `
+                                <div class="flex items-center gap-1.5 justify-start">
+                                    <span class="font-medium text-gray-700">${cleanName}</span>
+                                    <a href="${item.link.trim()}" target="_blank" class="text-blue-500 hover:text-blue-700 transition" title="צפה במידע נוסף">
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-70 hover:opacity-100"></i>
+                                    </a>
+                                </div>
+                            `;
+                        }
 
                         cardHTML += `
-                            <div class="grid grid-cols-4 items-center px-5 py-3.5 hover:bg-gray-50 transition gap-4 text-right">
-                                <span class="col-span-2 font-medium text-gray-700 text-right">${item.name}</span>
-                                
-                                <span class="font-bold text-gray-900 text-right">${valueText}</span>
-                                
-                                <span class="${changeClass}" dir="ltr">${changeText}</span>
+                            <div class="flex justify-between items-center px-5 py-3.5 hover:bg-gray-50 transition gap-4">
+                                <div class="w-1/2 text-right">
+                                    ${nameContentHTML}
+                                </div>
+                                <div class="w-1/2 flex items-center justify-end gap-8 text-right">
+                                    <span class="font-bold text-gray-900 w-24 text-right">${valueText}</span>
+                                    <span class="w-20 text-right text-sm inline-block ${changeClass}" dir="ltr">${changeText}</span>
+                                </div>
                             </div>
                         `;
                     });
